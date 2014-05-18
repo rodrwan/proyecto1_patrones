@@ -61,8 +61,8 @@ RF.prototype.predict = function (testSet) {
   var i, j;
   trainingSet = testSet[0];
   testSet = testSet[1];
-  console.log('Training set size: %d', trainingSet.length);
-  console.log('Test set size: %d', testSet.length);
+  // console.log('Training set size: %d', trainingSet.length);
+  console.log('Test set size: %d samples' , testSet.length);
   var bestFit = [];
   var bestMatrix = [];
   var confMatrix = new Array(26);

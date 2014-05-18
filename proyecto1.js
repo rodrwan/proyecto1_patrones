@@ -3,8 +3,8 @@ if (process.argv.length <= 2) {
 }
 
 var _ = require('underscore');
-var readFile = require('./readfile');
-var RandomForest = require('./randomforest');
+var readFile = require('./libs/readfile');
+var RandomForest = require('./libs/randomforest');
 
 var src = './data-set/letter.data';
 var dst = "./data-set/process.data";
