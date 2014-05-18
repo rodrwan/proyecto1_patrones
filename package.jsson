@@ -1,0 +1,9 @@
+{
+  "author": "Rodrigo Fuenzalida",
+  "version": "0.0.1",
+  "dependencies": {
+    "underscore": "~1.6.0",
+    "decision-tree": "~0.2.1",
+    "graphviz": "~0.0.8"
+  }
+}
