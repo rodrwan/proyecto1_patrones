@@ -4,7 +4,7 @@ function ID3(_s, target, features) {
   this.data = _s;
   this.target = target;
   this.features = features;
-  this.model = createTree(_s, target, features);
+  this.model = createTree(_s, target, features, 0);
 }
 
 ID3.prototype.predict = function (sample) {
@@ -22,8 +22,27 @@ ID3.prototype.predict = function (sample) {
   return root.val;
 };
 
+ID3.prototype.evaluate = function(samples) {
+  var instance = this;
+  var target = this.target;
+
+  var total = 0;
+  var correct = 0;
+
+  _.each(samples, function(s) {
+    total++;
+    var pred = instance.predict(s);
+    var actual = s[target];
+    if(pred == actual) {
+      correct++;
+    }
+  });
+
+  return correct / total;
+};
+
 var createTree = function (_s, target, features) {
-  var targets = _.uniq(_.pluck(_s, target));
+  var targets = unique(_.pluck(_s, target));
   // console.log(targets.length)
   // if the tree only have one leaf
   if (targets.length === 1) {
@@ -50,7 +69,7 @@ var createTree = function (_s, target, features) {
   // save others features.
   var remainingFeatures = _.without(features, bestFeature);
   // select the unique values of best feature
-  var posibleValues = _.uniq(_.pluck(_s, bestFeature));
+  var posibleValues = unique(_.pluck(_s, bestFeature));
   // create a node
   var node = {
     name: bestFeature
@@ -80,23 +99,32 @@ var log2 = function (n) {
   return Math.log(n)/Math.log(2);
 };
 
+var unique = function (arr) {
+  var uniqueVals = [];
+  _.each(arr, function (data, idx) {
+    if (uniqueVals.indexOf(data) === -1) uniqueVals.push(data);
+  });
+  return uniqueVals;
+};
+
 var prob = function (val, vals) {
-  var instances = _.filter(vals, function (x) {
-    return x === val
-  }).length;
+  var instances = 0;
+  _.each(vals, function (data, idx) {
+    if (data == val) instances++;
+  });
   var total = vals.length;
   return instances/total;
 };
 
 var entropy = function (vals) {
-  var uniqueVals = _.uniq(vals);
+  var uniqueVals = unique(vals);
   var probs = uniqueVals.map(function (x) { return prob(x, vals) });
   var logVals = probs.map(function (p) { return -p*log2(p) });
   return logVals.reduce(function (a, b) { return a+b }, 0);
 };
 
 var gain = function (_s, target, feature) {
-  var attrVals = _.uniq(_.pluck(_s, feature));
+  var attrVals = unique(_.pluck(_s, feature));
   var setEntropy = entropy(_.pluck(_s, target));
   var setSize = _.size(_s);
   // save the other side of the equation.

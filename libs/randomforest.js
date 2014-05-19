@@ -22,16 +22,14 @@ var poisson = function (lambda) {
     RANDOM FOREST IMPLEMENTATION
 
 ************************************/
-function RF(_s, T, alpha, beta) {
+function RF(_s, T) {
   this.data = _s;
   this.T = T;
-  this.alpha = alpha;
-  this.beta = beta;
   this.testSet = [];
-  this.root = createForest(_s, T, alpha, beta);
+  this.root = createForest(_s, T);
 }
 
-var createForest = function (_s, T, alpha, beta) {
+var createForest = function (_s, T) {
   var className = _s.className;
   var features = _s.features;
   var randomForest = [];
@@ -52,7 +50,7 @@ var createForest = function (_s, T, alpha, beta) {
     // console.log('Tree creation complete.\n');
   }
   var end = new Date() - start;
-  console.log('Building forest time: %ds', (end/1000).toFixed(2));
+  console.log('\nBuilding forest time: %ds', (end/1000).toFixed(2));
   return randomForest;
 };
 
@@ -74,46 +72,69 @@ RF.prototype.predict = function (testSet) {
   };
 
   var idx, idy;
-  for (i = 0; i < rfLength; i++) {
-
-    for (idx = 0; idx < 26; idx++) {
-      confMatrix[idx] = new Array(26);
-      for (idy = 0; idy < 26; idy++) {
-        confMatrix[idx][idy] = 0;
-      }
+  var letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+  for (idx = 0; idx < 26; idx++) {
+    confMatrix[idx] = new Array(26);
+    for (idy = 0; idy < 26; idy++) {
+      confMatrix[idx][idy] = 0;
     }
-
-    var dt = this.root[i];
-    var assertion = 0;
-    var badAssert = 0;
-    var countByLetter = {};
-
-    for (index in testSet) {
-      var letter = dt.predict(testSet[index]);
-      var realLetter = testSet[index].letter;
-      if (testSet[index].letter === letter) {
-        assertion++;
-        confMatrix[alphabet[realLetter]][alphabet[letter]] += 1;
-      } else {
-        confMatrix[alphabet[realLetter]][alphabet[letter]] += 1;
-      }
-    }
-    console.log("Accuracy per tree: %d%", ((assertion/testSet.length)*100).toFixed(2));
-    bestFit.push((assertion/testSet.length).toFixed(2));
-    bestMatrix.push(confMatrix);
   }
 
+  var bestAcc = [];
+  for (i = 0; i < rfLength; i++) {
+    var dt = this.root[i];
+    var acc = dt.evaluate(testSet);
+    bestAcc.push(acc);
+  };
+
+  var avg       = average(bestAcc);
+  var mean      = avg.mean;
+  var deviation = avg.deviation;
+
+  var bestTrees = [];
+  for (i = 0; i < bestAcc.length; i++) {
+    if ((mean-deviation) < bestAcc[i]) {
+      bestTrees.push(this.root[i]);
+    }
+  }
+  if (bestTrees.length === 0) bestTrees = this.root;
+
+  console.log("Used trees: " + bestTrees.length);
+  var assertion = 0;
+  for (index in testSet) {
+    var votes = [];
+    var badAssert = 0;
+    var countByLetter = {};
+    var realLetter = testSet[index].letter;
+
+    for (i = 0; i < letters.length; i++) {
+      votes[i] = 0;
+    }
+
+    for (i = 0; i < bestTrees.length; i++) {
+      var dt = bestTrees[i];
+      var letter = dt.predict(testSet[index]);
+      votes[alphabet[letter]] += 1;
+    }
+
+    var bestOption = votes.indexOf(_.max(votes));
+    var selectedletter = letters[bestOption];
+
+    if (realLetter === selectedletter) {
+      assertion++;
+      confMatrix[alphabet[realLetter]][alphabet[letter]] += 1;
+    } else {
+      confMatrix[alphabet[realLetter]][alphabet[letter]] += 1;
+    }
+  }
+
+  console.log("Accuracy: %d%", ((assertion/testSet.length)*100).toFixed(2));
   var maximo = _.max(bestFit);
   var pos = bestFit.indexOf(maximo)+1;
-  console.log('Best tree: %d', pos);
-  console.log("Best accuracy: %d%", (bestFit[pos-1]*100).toFixed(2));
   console.log('  \ta\tb\tc\td\te\tf\tg\th\ti\tj\tk\tl\tm\tn\to\tp\tq\tr\ts\tt\tu\tv\tw\tx\ty\tz');
-  confMatrix = bestMatrix[pos-1];
 
-  var letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
   var txt = '';
   var x, y;
-
 
   for (i in letters) {
     txt += letters[i] + '\t';
@@ -126,5 +147,23 @@ RF.prototype.predict = function (testSet) {
   }
   console.log(txt);
 };
+
+var average = function(a) {
+  var r = {
+    mean: 0,
+    variance: 0,
+    deviation: 0
+  }, t = a.length;
+
+  for(var m, s = 0, l = t; l--; s += a[l]);
+  for(m = r.mean = s / t, l = t, s = 0; l--; s += Math.pow(a[l] - m, 2));
+  return r.deviation = Math.sqrt(r.variance = s / t), r;
+}
+
+withinStd = function(mean, dev, val, stdev) {
+   var low = mean-(stdev*dev);
+   var hi = mean+(stdev*dev);
+   return (val > low) && (val < hi);
+}
 
 module.exports = RF;
